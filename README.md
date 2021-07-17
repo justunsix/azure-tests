@@ -18,10 +18,13 @@ To get a local copy up and running follow these simple example steps.
 - [VS Code Azure extentions](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 
-
 ### Installation
 
 ## Usage
+
+Follow tutorials:
+
+- [Deploy Express.js to Azure App Service using Visual Studio Code](https://docs.microsoft.com/en-us/azure/developer/javascript/tutorial/deploy-nodejs-azure-app-service-with-visual-studio-code?tabs=bash)
 
 ## Roadmap
 
