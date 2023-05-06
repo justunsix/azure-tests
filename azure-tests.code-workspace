@@ -14,6 +14,8 @@
 			"yzhang.markdown-all-in-one",
 			"DavidAnson.vscode-markdownlint",
 			"ban.spellright"
+			"github.copilot",
+			"GitHub.copilot-labs",			
 		]
 	}
 }
