@@ -9,14 +9,9 @@ $domains = $emails | ForEach-Object {($_ -split '@')[1]}
 # Removes duplicate domain names
 $domains = $domains | Select-Object -Unique
 
-# Queries Azure Active Directory for users 
-# whose email addresses match the domain name
+# Loop through each domain and count the number of users in AAD with that domain
 foreach ($domain in $domains) {
-    $users = Get-AzureADUser -Filter "UserPrincipalName -like '*@$domain'"
-    if ($users) {
-        Write-Host "Users found for domain $domain:"
-        
-        # Display UserPrincipalName for each user found
-        # Write-Host $users.UserPrincipalName
-    }
+    $users = Get-MgUser -All $true | Where-Object { $_.UserPrincipalName.EndsWith($domain) }
+    Write-Host "Domain: $domain"
+    Write-Host "Count of users with this domain: $($users.Count)"
 }
