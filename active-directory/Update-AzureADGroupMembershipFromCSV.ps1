@@ -2,6 +2,7 @@
 # a CSV file specifying users and their groups
 # Prerequisites: 
 # - Install Microsoft Graph PowerShell SDK and its prerequisites
+# - Connect to Graph with appropriate scope
 
 [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact="High")]
 param(
