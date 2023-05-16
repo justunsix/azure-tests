@@ -34,28 +34,63 @@ Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
 Install-Module Microsoft.Graph -Scope CurrentUser
 ```
 
-### Microsoft Graph Example Usage
+## Check-AzureADUsersFromEmailList.ps1
 
-#### Module Management
+PowerShell script to check Azure Active Directory users from a list of email addresses to see if domains in the list of users match domains of existing users in the AAD.
+
+## Microsoft Graph Example Usage
+
+### Module Management and Sign In
 
 ```powershell
 # Verify the module is installed
 Get-InstalledModule Microsoft.Graph
 # Update the module
 Update-Module Microsoft.Graph
-```
 
-#### Permissions
-
-```powershell
 # Check permission for cmdlet for example Get-MgUser:
 Find-MgGraphCommand -command Get-MgUser | Select -First 1 -ExpandProperty Permissions
 
 # Sign in with user read and group read write
+# to prepare for group operations
 Connect-MgGraph -Scopes "User.Read.All","Group.ReadWrite.All"
+
+# Sign in with Read only
+Connect-MgGraph -Scopes 'User.Read.All',"Group.Read.All"
 
 # Do work
 
 # Sign out
 Disconnect-MgGraph
+```
+
+### Group Queries
+
+```powershell
+# Get information on a user
+Get-MgUser -Filter "userPrincipalName eq 'Justin.Tung@mydomain.ca'" | Format-List ID, DisplayName, Mail, UserPrincipalName
+
+# Search for users with a specific "domain.ca" in their email address
+$users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, 'domain.ca')" -OrderBy UserPrincipalName
+```
+
+### User Management
+
+```powershell
+
+# Use -WhatIf to test changes without making them
+
+# Get a user by principal name
+$user = Get-MgUser -Filter "userPrincipalName eq 'Justin.Tung@mydomain.ca'"
+
+# Get a group by Group name
+$group = Get-MgGroup -Filter "displayName eq 'reader-friendly-group-name'"
+$group | Format-List Id, DisplayName, Description
+
+# Remove user found previously from the group
+Remove-MgGroupMemberByRef -GroupId $group.Id -DirectoryObjectId $user.Id
+
+# Add user found previously to the group
+New-MgGroupMember -GroupId $group.Id -DirectoryObjectId $user.Id
+
 ```

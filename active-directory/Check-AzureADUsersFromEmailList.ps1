@@ -11,7 +11,7 @@ $domains = $domains | Select-Object -Unique
 
 # Loop through each domain and count the number of users in AAD with that domain
 foreach ($domain in $domains) {
-    $users = Get-MgUser -All $true | Where-Object { $_.UserPrincipalName.EndsWith($domain) }
-    Write-Host "Domain: $domain"
-    Write-Host "Count of users with this domain: $($users.Count)"
+      $users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, '$domain')" -OrderBy UserPrincipalName 
+      Write-Host "$domain, $($users.Count)"
 }
+
