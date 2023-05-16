@@ -10,8 +10,13 @@ $domains = $emails | ForEach-Object {($_ -split '@')[1]}
 $domains = $domains | Select-Object -Unique
 
 # Loop through each domain and count the number of users in AAD with that domain
+Write-Host "Domain, AAD User Count, Email Count"
 foreach ($domain in $domains) {
-      $users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, '$domain')" -OrderBy UserPrincipalName 
-      Write-Host "$domain, $($users.Count)"
+    # Get users with emails that end with the domain
+    $users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, '$domain')" -OrderBy UserPrincipalName 
+    # Get number of users in the emails.txt with that domain
+    $emailCount = $emails | Where-Object {$_ -like "*@$domain"} | Measure-Object | Select-Object -ExpandProperty Count
+
+    Write-Host "$domain, $($users.Count), $emailCount"
 }
 
