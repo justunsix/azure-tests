@@ -5,8 +5,9 @@
 
 # Reads the contents of a file named emails.txt
 $emails = Get-Content -Path "./emails.txt"
-$domains = $emails | ForEach-Object {($_ -split '@')[1]}
-# Removes duplicate domain names
+# Get all domains from emails and make them lowercase
+$domains = $emails | ForEach-Object {($_ -split "@")[1].ToLower()}
+# Remove duplicate domain names
 $domains = $domains | Select-Object -Unique
 
 # Loop through each domain and count the number of users in AAD with that domain
