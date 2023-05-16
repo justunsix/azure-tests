@@ -9,8 +9,10 @@ param(
     # Allow script to support:
     # - SupportsShouldProcess: 
     #   -WhatIf : what happens if script is run 
-    #   -Confirm : prompt user to confirm execution
-    #
+    #   -Confirm : prompt user to confirm changes
+    # - ConfirmImpact:
+    #   - High: automatically prompt user to confirm
+    
     # Confirm path to CSV file containing a list 
     # of users and their emails
     # set default path to users csv file to current working directory
