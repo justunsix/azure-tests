@@ -6,7 +6,14 @@
 # Reads the contents of a file named emails.txt
 $emails = Get-Content -Path "./emails.txt"
 # Get all domains from emails and make them lowercase
-$domains = $emails | ForEach-Object {($_ -split "@")[1].ToLower()}
+# Catch parse error
+try {
+    $domains = $emails | ForEach-Object {($_ -split "@")[1].ToLower()}
+} catch {
+    Write-Host "Error parsing emails.txt, an email may not be in a correct format of name@domain.ending"
+    exit
+}
+
 # Remove duplicate domain names
 $domains = $domains | Select-Object -Unique
 
@@ -15,8 +22,8 @@ Write-Host "Domain, AAD User Count, Email Count"
 foreach ($domain in $domains) {
     # Get users with emails that end with the domain
     $users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, '$domain')" -OrderBy UserPrincipalName 
-    # Get number of users in the emails.txt with that domain
-    $emailCount = $emails | Where-Object {$_ -like "*@$domain"} | Measure-Object | Select-Object -ExpandProperty Count
+    # Get number of users in the emails.txt with that domain, make sure emails are compared in lowercase
+    $emailCount = $emails | Where-Object {($_ -split "@")[1].ToLower() -eq $domain} | Measure-Object | Select-Object -ExpandProperty Count
 
     Write-Host "$domain, $($users.Count), $emailCount"
 }
