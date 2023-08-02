@@ -4,6 +4,9 @@
 # - Install Microsoft Graph PowerShell SDK and its prerequisites
 # - Connect to Graph with appropriate scope
 
+# Script was converted from Azure AD PowerShell cmdlets to Microsoft Graph PowerShell
+# while referencing https://learn.microsoft.com/en-us/powershell/microsoftgraph/azuread-msoline-cmdlet-map?view=graph-powershell-1.0
+
 [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact="High")]
 param(
     # Allow script to support:
@@ -13,11 +16,11 @@ param(
     # - ConfirmImpact:
     #   - High: automatically prompt user to confirm
     
-    # Confirm path to CSV file containing a list 
+    # Confirm path to CSV file containing a list
     # of users and their emails
-    # set default path to users csv file to current working directory
+    # set default path to users.csv file in current working directory for script
     [ValidateScript({Test-Path $_})]
-    [string]$AuthorizationFilePath = ".\Users.csv"
+    [string]$AuthorizationFilePath = ".\users.csv"
 )
 
 # CSV format is Name,EmailAddress,Group
@@ -43,17 +46,21 @@ foreach ($g in $groups) {
 
     # Get group object from AAD
     Write-Host "*** $groupName ***" -ForegroundColor Yellow
-    # AzureAD PowerShell (deprecated): 
-    $aadGroup = Get-AzureADGroup -SearchString "$groupName"
-    # Microsoft Graph PowerShell SDK, get group by display name: 
-    # $aadGroup = GetMgGroup -Filter "DisplayName eq '$groupName'"
+    # AzureAD PowerShell (deprecated) - ** AAPD
+    # ** AAPD: $aadGroup = Get-AzureADGroup -SearchString "$groupName"
+    # Microsoft Graph PowerShell SDK - ** GPS
+    # ** GPS: Get group by display name: 
+    $aadGroup = Get-MgGroup -Filter "DisplayName eq '$groupName'"
     
     # See desired members from csv file
     $desiredMembers = $g | Select -ExpandProperty Group | Select -ExpandProperty EmailAddress | ForEach { $_.ToLower() }
     Write-Host "Desired members: $($desiredMembers -join ', ')"
     
-    # See current members from AAD
-    $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
+    # ** AAPD: $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
+    # ** GPS: Get current members from AAD and
+    # get each person's email address in lower case
+    $currentMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All | Select-Object @{ Name = 'mail'; Expression = { $_.additionalProperties['mail'] } } | Select-Object -ExpandProperty mail | ForEach-Object { $_.ToLower() }
+
     Write-Host "Current members: $($currentMembers -join ', ')"
 
     # Add users to group if they are in the desired members list
