@@ -3,19 +3,5 @@
 		{
 			"path": "."
 		}
-	],
-	"settings": {},
-	"extensions": {
-		"recommendations": [
-			"bencoleman.armview",
-			"ms-vscode.vscode-node-azure-pack",
-			"ms-azuretools.vscode-bicep",
-			"ms-azuretools.vscode-docker",
-			"yzhang.markdown-all-in-one",
-			"DavidAnson.vscode-markdownlint",
-			"ban.spellright",
-			"github.copilot",
-			"GitHub.copilot-labs"
-		]
-	}
+	]
 }
