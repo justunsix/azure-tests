@@ -40,25 +40,27 @@ $records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach {
 # - Add or remove users by comparing the AAD users in group
 #   with desired member list
 
-$groups = $records | Group Group
+$groups = $records | Group-Object Group
 foreach ($g in $groups) {
     $groupName = $g.Group[0].Group
 
     # Get group object from AAD
     Write-Host "*** $groupName ***" -ForegroundColor Yellow
+
+    # Get group by display name
     # AzureAD PowerShell (deprecated) - ** AAPD
     # ** AAPD: $aadGroup = Get-AzureADGroup -SearchString "$groupName"
     # Microsoft Graph PowerShell SDK - ** GPS
-    # ** GPS: Get group by display name: 
+    # ** GPS: 
     $aadGroup = Get-MgGroup -Filter "DisplayName eq '$groupName'"
     
     # See desired members from csv file
-    $desiredMembers = $g | Select -ExpandProperty Group | Select -ExpandProperty EmailAddress | ForEach { $_.ToLower() }
+    $desiredMembers = $g | Select-Object -ExpandProperty Group | Select-Object -ExpandProperty EmailAddress | ForEach { $_.ToLower() }
     Write-Host "Desired members: $($desiredMembers -join ', ')"
     
+    # Get current members from AAD and each person's email address in lower case
     # ** AAPD: $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
-    # ** GPS: Get current members from AAD and
-    # get each person's email address in lower case
+    # ** GPS: 
     $currentMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All | Select-Object @{ Name = 'mail'; Expression = { $_.additionalProperties['mail'] } } | Select-Object -ExpandProperty mail | ForEach-Object { $_.ToLower() }
 
     Write-Host "Current members: $($currentMembers -join ', ')"
