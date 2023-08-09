@@ -61,6 +61,10 @@ foreach ($g in $groups) {
     # Get current members from AAD and each person's email address in lower case
     # ** AAPD: $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
     # ** GPS: 
+    # TODO: Fix issue where the mail field might be blank for federated users, instead use another
+    # email field, possible workaround properties AAD object:
+    # - Other Emails
+    #   - An issue is there could be multiple Other Emails
     $currentMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All | Select-Object @{ Name = 'mail'; Expression = { $_.additionalProperties['mail'] } } | Select-Object -ExpandProperty mail | ForEach-Object { $_.ToLower() }
 
     Write-Host "Current members: $($currentMembers -join ', ')"
@@ -74,6 +78,9 @@ foreach ($g in $groups) {
         if (-not $isInGroup) {
             # Desired member not in AAD, add them
             Write-Host "+ $email" -ForegroundColor Green
+            # TODO: Fix issue where the mail search might be blank for federated users
+            # Could catch this case and attempt search on property 'Other emails' to
+            # find the user
             $user = Get-AzureADUser -SearchString "$email"
             
             if ($PSCmdlet.ShouldProcess($email , "Add to $($aadGroup.DisplayName)")) {
