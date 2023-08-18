@@ -78,15 +78,23 @@ foreach ($g in $groups) {
         if (-not $isInGroup) {
             # Desired member not in AAD, add them
             Write-Host "+ $email" -ForegroundColor Green
-            # TODO: Fix issue where the mail search might be blank for federated users
-            # Could catch this case and attempt search on property 'Other emails' to
-            # find the user or use user principal name from user information
             $user = Get-AzureADUser -SearchString "$email"
-            
+
+            if (!$user) {
+                # Fix issue where SearchString email is not finding guest users,
+                # reformat the email to match the start of their user principal name
+                # and search on that instead
+                $upnFromEmail = $email.Replace("@", "_")
+                $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
+                if (!$user) {
+                    # Otherwise the user is not in a known format or the email could be incorrect or using an older email
+                    Write-Host "Error: $email not found by this script`nDetermine if the user exists in Azure Active Directory by searching on $email and if they do add them manually." -ForegroundColor Red
+                }
+            }
             if ($PSCmdlet.ShouldProcess($email , "Add to $($aadGroup.DisplayName)")) {
                 Add-AzureADGroupMember -ObjectId $aadGroup.ObjectId -RefObjectId $user.ObjectId
             }
-        
+            
         } else {
             # Desired member is already in AAD group
             Write-Host "= $email" -ForegroundColor Gray
