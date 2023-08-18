@@ -1,6 +1,5 @@
 {
   "recommendations": [
-    "ms-vscode.powershell",
     "bencoleman.armview",
     "ms-vscode.vscode-node-azure-pack",
     "ms-azuretools.vscode-bicep",
@@ -10,6 +9,7 @@
     "ban.spellright",
     "github.copilot",
     "github.copilot-labs",
-    "github.copilot-chat"
+    "github.copilot-chat",
+    "ms-vscode.powershell"
   ]
 }
