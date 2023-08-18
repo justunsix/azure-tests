@@ -80,7 +80,7 @@ foreach ($g in $groups) {
             Write-Host "+ $email" -ForegroundColor Green
             # TODO: Fix issue where the mail search might be blank for federated users
             # Could catch this case and attempt search on property 'Other emails' to
-            # find the user
+            # find the user or use user principal name from user information
             $user = Get-AzureADUser -SearchString "$email"
             
             if ($PSCmdlet.ShouldProcess($email , "Add to $($aadGroup.DisplayName)")) {
