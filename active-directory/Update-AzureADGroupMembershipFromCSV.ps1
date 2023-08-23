@@ -51,28 +51,51 @@ foreach ($g in $groups) {
     # AzureAD PowerShell (deprecated) - ** AAPD
     # ** AAPD: $aadGroup = Get-AzureADGroup -SearchString "$groupName"
     # Microsoft Graph PowerShell SDK - ** GPS
-    # ** GPS: 
+    # ** GPS: Get-MgGroup
     $aadGroup = Get-MgGroup -Filter "DisplayName eq '$groupName'"
     
     # See desired members from csv file
-    $desiredMembers = $g | Select-Object -ExpandProperty Group | Select-Object -ExpandProperty EmailAddress | ForEach { $_.ToLower() }
+    $desiredMembers = @()
+    foreach ($member in $g.Group) {
+        $desiredGroupMemberEmail = $member.EmailAddress.ToLower()
+        $desiredMembers += $desiredGroupMemberEmail
+    }
+
     Write-Host "Desired members: $($desiredMembers -join ', ')"
     
     # Get current members from AAD and each person's email address in lower case
     # ** AAPD: $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
-    # ** GPS: 
-    # TODO: Fix issue where the mail field might be blank for federated users, instead use another
-    # email field, possible workaround properties AAD object:
-    # - Other Emails
-    #   - An issue is there could be multiple Other Emails
-    $currentMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All | Select-Object @{ Name = 'mail'; Expression = { $_.additionalProperties['mail'] } } | Select-Object -ExpandProperty mail | ForEach-Object { $_.ToLower() }
+    # ** GPS: Get-MgGroupMember
+    $groupMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All
+    $currentMembers = @()
+    foreach ($member in $groupMembers) {
+        $currentGroupMemberEmail = $member.Mail
+
+        # Fix issue where the mail field might be blank for federated users
+        # or users with multiple email address
+        # If EmailAddress is blank, check property: Other Emails
+        # Add "Other Emails" first entry to the array if not blank
+        if (!$currentGroupMemberEmail) {
+            $currentGroupMemberOtherEmails = $member.OtherMails[0]
+            if ($currentGroupMemberOtherEmails) {
+                $currentGroupMemberEmail = $currentGroupMemberOtherEmails.ToLower()
+            }
+            else {
+                Write-Host "Error: $member.DisplayName has no email address" -ForegroundColor Red
+            }
+        }
+        else {
+            $currentGroupMemberEmail = $currentGroupMemberEmail.ToLower()
+        }
+        $currentMembers += $currentGroupMemberEmail
+    }
 
     Write-Host "Current members: $($currentMembers -join ', ')"
 
     # Add users to group if they are in the desired members list
     # but not in the AAD group
     foreach ($email in $desiredMembers) {
-        $existingUser = Get-AzureADUser -SearchString "$email"
+
         $isInGroup = $currentMembers | Where-Object -FilterScript { $_ -eq $email }
 
         if (-not $isInGroup) {
