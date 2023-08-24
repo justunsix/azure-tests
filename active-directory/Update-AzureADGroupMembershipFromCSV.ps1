@@ -90,7 +90,6 @@ foreach ($g in $groups) {
             # Add "Other Emails" entries to the current group members
             # If none, no emails will be added
             foreach ($otherEmail in $member.OtherMails) {
-                Write-Host "Other Emails: $otherEmail" -ForegroundColor Red                    
                 $currentMembersOtherEmails += $otherEmail.ToLower()
             }
         }
