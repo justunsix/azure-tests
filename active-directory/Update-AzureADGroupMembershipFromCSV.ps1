@@ -67,27 +67,33 @@ foreach ($g in $groups) {
     # ** AAPD: $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
     # ** GPS: Get-MgGroupMember
     $groupMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All
-    $currentMembers = @()
-    foreach ($member in $groupMembers) {
-        $currentGroupMemberEmail = $member.Mail
 
-        # Fix issue where the mail field might be blank for federated users
-        # or users with multiple email address
-        # If EmailAddress is blank, check property: Other Emails
-        # Add "Other Emails" first entry to the array if not blank
-        if (!$currentGroupMemberEmail) {
-            $currentGroupMemberOtherEmails = $member.OtherMails[0]
-            if ($currentGroupMemberOtherEmails) {
-                $currentGroupMemberEmail = $currentGroupMemberOtherEmails.ToLower()
-            }
-            else {
-                Write-Host "Error: $member.DisplayName has no email address" -ForegroundColor Red
-            }
+    # List of member's email which may be blank
+    $currentMembers = @()
+    # List of members Other emails
+    $currentMembersOtherEmails = @()
+
+    foreach ($member in $groupMembers) {
+
+        $currentGroupMemberEmail = $member.Mail
+        $currentGroupMemberOtherEmails = $member.OtherMails[0]
+
+        if (!$currentGroupMemberEmail -and !$currentGroupMemberOtherEmails) {
+            Write-Host "Error: $member.DisplayName has no email address" -ForegroundColor Red
         }
         else {
-            $currentGroupMemberEmail = $currentGroupMemberEmail.ToLower()
+            if ($currentGroupMemberEmail) {
+                $currentMembers += $currentGroupMemberEmail.ToLower()
+            }
+            # Fix issue where the mail field might be blank for federated users
+            # or users have multiple other email addresses
+            # Add "Other Emails" entries to the current group members
+            # If none, no emails will be added
+            foreach ($otherEmail in $member.OtherMails) {
+                Write-Host "Other Emails: $otherEmail" -ForegroundColor Red                    
+                $currentMembersOtherEmails += $otherEmail.ToLower()
+            }
         }
-        $currentMembers += $currentGroupMemberEmail
     }
 
     Write-Host "Current members: $($currentMembers -join ', ')"
@@ -97,8 +103,9 @@ foreach ($g in $groups) {
     foreach ($email in $desiredMembers) {
 
         $isInGroup = $currentMembers | Where-Object -FilterScript { $_ -eq $email }
+        $isInGroupOtherEmails = $currentMembersOtherEmails | Where-Object -FilterScript { $_ -eq $email }
 
-        if (-not $isInGroup) {
+        if (!$isInGroup -and !$isInGroupOtherEmails) {
             # Desired member not in AAD, add them
             Write-Host "+ $email" -ForegroundColor Green
             $user = Get-AzureADUser -SearchString "$email"
