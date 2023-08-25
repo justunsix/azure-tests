@@ -45,7 +45,7 @@ foreach ($g in $groups) {
     $groupName = $g.Group[0].Group
 
     # Get group object from AAD
-    Write-Host "*** $groupName ***" -ForegroundColor Yellow
+    Write-Host "`n----------------------------------`n*** $groupName ***" -ForegroundColor Yellow
 
     # Get group by display name
     # AzureAD PowerShell (deprecated) - ** AAPD
