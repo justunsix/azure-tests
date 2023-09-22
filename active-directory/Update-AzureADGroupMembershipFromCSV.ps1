@@ -7,7 +7,7 @@
 # Script was converted from Azure AD PowerShell cmdlets to Microsoft Graph PowerShell
 # while referencing https://learn.microsoft.com/en-us/powershell/microsoftgraph/azuread-msoline-cmdlet-map?view=graph-powershell-1.0
 
-[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact="High")]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "High")]
 param(
     # Allow script to support:
     # - SupportsShouldProcess: 
@@ -19,18 +19,23 @@ param(
     # Confirm path to CSV file containing a list
     # of users and their emails
     # set default path to users.csv file in current working directory for script
-    [ValidateScript({Test-Path $_})]
+    [ValidateScript({ Test-Path $_ })]
     [string]$AuthorizationFilePath = ".\users.csv"
 )
 
 # CSV format is Name,EmailAddress,Group
 # Get user entries from CSV file
 $records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach {
-	[PSCustomObject]@{
-		Name=$_.Name.Trim();
-		EmailAddress=$_.EmailAddress.Trim();
-		Group=$_.Group.Trim()
-	}
+    [PSCustomObject]@{
+        Name         = $_.Name.Trim();
+        EmailAddress = $_.EmailAddress.Trim();
+        Group        = $_.Group.Trim()
+    }
+    # If csv row is invalid, give error, and exit script
+    if ($_.Group -eq "" -or $_.Name -eq "" -or $_.EmailAddress -eq "") {
+        Write-Host "Error: a line in csv file has no name, group, or email address assigned. Check the csv file and that rows are not empty." -ForegroundColor Red
+        exit 1
+    }
 }
 
 # Update AAD groups so groups match with users' groups
@@ -124,7 +129,8 @@ foreach ($g in $groups) {
                 Add-AzureADGroupMember -ObjectId $aadGroup.ObjectId -RefObjectId $user.ObjectId
             }
             
-        } else {
+        }
+        else {
             # Desired member is already in AAD group
             Write-Host "= $email" -ForegroundColor Gray
         }
