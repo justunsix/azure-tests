@@ -1,6 +1,6 @@
 # Azure Active Directory
 
-Use Microsoft Graph API and PowerShell to manage Azure Active Directory (AAD) resources.
+Use Microsoft Graph API and PowerShell to manage Microsoft Entra, also known formerly as Azure Active Directory (AAD), resources.
 
 ## Update-AzureADGroupMembershipFromCSV.ps1
 
