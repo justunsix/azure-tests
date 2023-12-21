@@ -8,7 +8,6 @@
     "davidanson.vscode-markdownlint",
     "ban.spellright",
     "github.copilot",
-    "github.copilot-labs",
     "github.copilot-chat",
     "ms-vscode.powershell"
   ]
