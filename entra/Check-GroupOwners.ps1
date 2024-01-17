@@ -1,4 +1,4 @@
-# Description: This script checks the owners of a group in Microsoft Entra that starts with the parameter passed to the script
+# Description: Checks the owners of a group in Microsoft Entra that starts with the name passed to the script
 param(
     [Parameter(Mandatory=$true)]
     [string]$groupName1
