@@ -1,21 +1,22 @@
-# Azure Active Directory
+# Microsoft Entra formerly Azure Active Directory (AAD)
 
 Use Microsoft Graph API and PowerShell to manage Microsoft Entra, also known formerly as Azure Active Directory (AAD), resources.
 
-## Update-AzureADGroupMembershipFromCSV.ps1
-
-PowerShell script to update Azure Active Directory group membership from a CSV file.
-
-Example use case: Synchronize AAD groups with a user list maintained in a CSV file.
-
-### Prerequisites
+## Prerequisites
 
 - [Install the Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-1.0) and its prerequisites and verify it:
   - PowerShell 7 and later is recommended.
   - If using Windows PowerShell, additional prerequisites are required.
 - Learn more at [Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/?view=graph-powershell-1.0)
 
-#### PowerShell 7
+## Description of Scripts in this Directory
+
+- `Check-EnterpriseAppUsers` - Check users in an Enterprise Application
+  - `Check-GroupOwners` - Check owners of groups
+  - `Check-UsersFromEmailList.ps1` - See if users with certain emails are present in Entra and how many of them there are
+- `Add-GroupOwners.ps1` - Add owners to groups
+
+## PowerShell 7
 
 There may be errors when trying to install the Microsoft Graph PowerShell SDK on PowerShell 7. If you encounter errors like:
 
@@ -37,12 +38,6 @@ Install-Module Microsoft.Graph -Scope CurrentUser
 ```
 
 The error may be due to the PowerShell Gallery not being registered or the repository not being set and the commands above will set the PowerShell Gallery so the `Install-Module` command will work.
-
-## Check-AzureADUsersFromEmailList.ps1
-
-PowerShell script to check Azure Active Directory users from a list of email addresses to see if domains in the list of users match domains of existing users in the AAD.
-
-Example use case: Checking if domains in the emails need to be added to the allow list of the AAD tenant or there are existing users from an organization already in the directory.
 
 ## Microsoft Graph Example Usage
 
