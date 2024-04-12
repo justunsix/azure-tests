@@ -1,11 +1,12 @@
-﻿# Update Azure Active Directory (AAD) groups membership based on 
+﻿# Update Entra formerly known as Azure Active Directory (AAD) groups membership based on 
 # a CSV file specifying users and their groups
+#
 # Prerequisites: 
 # - Install Microsoft Graph PowerShell SDK and its prerequisites
 # - Connect to Graph with appropriate scope
 
-# Script was converted from Azure AD PowerShell cmdlets to Microsoft Graph PowerShell
-# while referencing https://learn.microsoft.com/en-us/powershell/microsoftgraph/azuread-msoline-cmdlet-map?view=graph-powershell-1.0
+# Script was converted from Azure AD PowerShell cmdlets to Microsoft Graph PowerShell using 
+# https://learn.microsoft.com/en-us/powershell/microsoftgraph/azuread-msoline-cmdlet-map?view=graph-powershell-1.0
 
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "High")]
 param(
@@ -16,8 +17,7 @@ param(
     # - ConfirmImpact:
     #   - High: automatically prompt user to confirm
     
-    # Confirm path to CSV file containing a list
-    # of users and their emails
+    # Confirm path to CSV file containing a list of users and their emails
     # set default path to users.csv file in current working directory for script
     [ValidateScript({ Test-Path $_ })]
     [string]$AuthorizationFilePath = ".\users.csv"
@@ -38,12 +38,10 @@ $records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach {
     }
 }
 
-# Update AAD groups so groups match with users' groups
-# assigned in the csv file
+# Update Entra groups so groups match with users' groups assigned in the csv file
 # - Group users by group name 
 # - Check each group
-# - Add or remove users by comparing the AAD users in group
-#   with desired member list
+# - Add or remove users by comparing the users in group with desired members from csv file
 
 $groups = $records | Group-Object Group
 foreach ($g in $groups) {
@@ -68,7 +66,7 @@ foreach ($g in $groups) {
 
     Write-Host "Desired members: $($desiredMembers -join ', ')"
     
-    # Get current members from AAD and each person's email address in lower case
+    # Get current members from Entra and each person's email address in lower case
     # ** AAPD: $currentMembers = Get-AzureADGroupMember -ObjectId $aadGroup.ObjectId -All $true | Select -ExpandProperty Mail | ForEach { $_.ToLower() }
     # ** GPS: Get-MgGroupMember
     $groupMembers = Get-MgGroupMember -GroupId $aadGroup.Id -All
@@ -102,17 +100,19 @@ foreach ($g in $groups) {
 
     Write-Host "Current members: $($currentMembers -join ', ')"
 
-    # Add users to group if they are in the desired members list
-    # but not in the AAD group
+    # Add users to group if they are desired members from csv file but not in the group
     foreach ($email in $desiredMembers) {
 
         $isInGroup = $currentMembers | Where-Object -FilterScript { $_ -eq $email }
         $isInGroupOtherEmails = $currentMembersOtherEmails | Where-Object -FilterScript { $_ -eq $email }
 
         if (!$isInGroup -and !$isInGroupOtherEmails) {
-            # Desired member not in AAD, add them
+            # Desired member not in group, add them
             Write-Host "+ $email" -ForegroundColor Green
-            $user = Get-AzureADUser -SearchString "$email"
+            # ** AAPD: $user = Get-AzureADUser -SearchString "$email"
+            # ** GPS: Get-MgUser
+            # TODO verify GPS code
+            $user = Get-MgUser -Filter "startswith(userPrincipalName,'$email')"
 
             if (!$user) {
                 # Fix issue where SearchString email is not finding guest users,
