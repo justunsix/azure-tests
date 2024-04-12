@@ -3,7 +3,7 @@
 #
 # Prerequisites: 
 # - Install Microsoft Graph PowerShell SDK and its prerequisites
-# - Connect to Graph with appropriate scope
+# Call script using: .\Update-EntraGroupMembershipFromCSV.ps1 -AuthorizationFilePath "path\to\users.csv"
 
 # Script was converted from Azure AD PowerShell cmdlets to Microsoft Graph PowerShell using 
 # https://learn.microsoft.com/en-us/powershell/microsoftgraph/azuread-msoline-cmdlet-map?view=graph-powershell-1.0
@@ -22,6 +22,11 @@ param(
     [ValidateScript({ Test-Path $_ })]
     [string]$AuthorizationFilePath = ".\users.csv"
 )
+
+# Connect using Microsoft Graph SDK for PowerShell
+# Sign in with user read and group read write
+# to prepare for group operations if needed
+Connect-MgGraph -Scopes "User.Read.All", "Group.ReadWrite.All"
 
 # CSV format is Name,EmailAddress,Group
 # Get user entries from CSV file
@@ -78,22 +83,26 @@ foreach ($g in $groups) {
 
     foreach ($member in $groupMembers) {
 
-        $currentGroupMemberEmail = $member.Mail
-        $currentGroupMemberOtherEmails = $member.OtherMails[0]
+        $memberUserObject = Get-MgUser -UserId $member.Id
+        $currentGroupMemberEmail = $memberUserObject.Mail
+        $otherEmailsExist = $memberUserObject.OtherMails.Count -gt 0
 
-        if (!$currentGroupMemberEmail -and !$currentGroupMemberOtherEmails) {
-            Write-Host "Error: $member.DisplayName has no email address" -ForegroundColor Red
+        if (!$currentGroupMemberEmail -and !$otherEmailsExist) {
+            Write-Host "Error: $($memberUserObject.DisplayName) has no email address" -ForegroundColor Red
         }
         else {
             if ($currentGroupMemberEmail) {
                 $currentMembers += $currentGroupMemberEmail.ToLower()
             }
-            # Fix issue where the mail field might be blank for federated users
-            # or users have multiple other email addresses
-            # Add "Other Emails" entries to the current group members
-            # If none, no emails will be added
-            foreach ($otherEmail in $member.OtherMails) {
-                $currentMembersOtherEmails += $otherEmail.ToLower()
+
+            if ($otherEmailsExist) {
+                # Fix issue where the mail field might be blank for federated users
+                # or users have multiple other email addresses
+                # Add "Other Emails" entries to the current group members
+                # If none, no emails will be added
+                foreach ($otherEmail in $memberUserObject.OtherMails) {
+                    $currentMembersOtherEmails += $otherEmail.ToLower()
+                }
             }
         }
     }
@@ -111,22 +120,28 @@ foreach ($g in $groups) {
             Write-Host "+ $email" -ForegroundColor Green
             # ** AAPD: $user = Get-AzureADUser -SearchString "$email"
             # ** GPS: Get-MgUser
-            # TODO verify GPS code
-            $user = Get-MgUser -Filter "startswith(userPrincipalName,'$email')"
+            # Account for emails that have single quotes in them
+            # by replacing them with two single quotes to avoid breaking filter clause
+            $emailToSearch = $email.Replace("'", "''")
+            $user = Get-MgUser -Filter "startswith(userPrincipalName,'$emailToSearch')"
 
             if (!$user) {
                 # Fix issue where SearchString email is not finding guest users,
                 # reformat the email to match the start of their user principal name
                 # and search on that instead
                 $upnFromEmail = $email.Replace("@", "_")
-                $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
+                # ** AAPD: $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
+                # ** GPS: Get-MgUser
+                $user = Get-MgUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
                 if (!$user) {
                     # Otherwise the user is not in a known format or the email could be incorrect or using an older email
-                    Write-Host "Error: $email not found by this script`nDetermine if the user exists in Azure Active Directory by searching on $email and if they do add them manually." -ForegroundColor Red
+                    Write-Host "Error: $email not found by this script`nDetermine if the user exists in the directory by searching on $email and if they do add them manually." -ForegroundColor Red
                 }
             }
             if ($PSCmdlet.ShouldProcess($email , "Add to $($aadGroup.DisplayName)")) {
-                Add-AzureADGroupMember -ObjectId $aadGroup.ObjectId -RefObjectId $user.ObjectId
+                # ** AAPD: Add-AzureADGroupMember -ObjectId $aadGroup.ObjectId -RefObjectId $user.ObjectId
+                # ** GPS: New-MgGroupMember
+                New-MgGroupMember -GroupId $aadGroup.Id -DirectoryObjectId $user.Id
             }
             
         }
@@ -136,19 +151,21 @@ foreach ($g in $groups) {
         }
     }
     
-    # Remove users from group if they are in the AAD grou
-    # but not in the desired members list
+    # Remove users from group if they are in the group but not in the desired members list
     foreach ($email in $currentMembers) {
         $removeUser = -not ($desiredMembers | Where-Object -FilterScript { $_ -eq $email })
 
         if ($removeUser) {
-            # User is in AAD group but not in desired members list,
-            # remove them
+            # User is in group but not in desired members list, remove them
             Write-Host "- $email" -ForegroundColor Red
-            $user = Get-AzureADUser -SearchString "$email"
+            # ** AAPD: $user = Get-AzureADUser -SearchString "$email"
+            # ** GPS: Get-MgUser
+            $user = Get-MgUser -Filter "startswith(userPrincipalName,'$email')"
             
             if ($PSCmdlet.ShouldProcess($user.Mail , "Remove from $($aadGroup.DisplayName)")) {
-                Remove-AzureADGroupMember -ObjectId $aadGroup.ObjectId -MemberId $user.ObjectId
+                # ** AAPD: Remove-AzureADGroupMember -ObjectId $aadGroup.ObjectId -MemberId $user.ObjectId
+                # ** GPS: Remove-MgGroupMemberByRef
+                Remove-MgGroupMemberByRef -GroupId $aadGroup.Id -DirectoryObjectId $user.Id
             }
         }
     }
