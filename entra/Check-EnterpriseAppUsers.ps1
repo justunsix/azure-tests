@@ -1,4 +1,5 @@
 # Given an Enterprise Application name, this script will return a list of users that have been assigned to the application
+# Call using .\Check-EnterpriseAppUsers.ps1 -appName "Enterprise Application Name"
 param(
     [Parameter(Mandatory=$true)]
     [string]$appName
