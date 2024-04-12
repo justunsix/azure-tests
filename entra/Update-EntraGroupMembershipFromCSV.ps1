@@ -30,7 +30,7 @@ Connect-MgGraph -Scopes "User.Read.All", "Group.ReadWrite.All"
 
 # CSV format is Name,EmailAddress,Group
 # Get user entries from CSV file
-$records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach {
+$records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach-Object {
     [PSCustomObject]@{
         Name         = $_.Name.Trim();
         EmailAddress = $_.EmailAddress.Trim();
