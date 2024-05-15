@@ -2,11 +2,12 @@
 
 ## About The Project
 
-Testing deployment of Azure resources using Azure CLI and VS Code
+Testing management and deployment of Microsoft Azure resources, Entra ID identity management using Azure CLI, Microsoft Graph.
 
 ### Built With
 
-- Microsoft Azure
+- [Microsoft Azure portal](https://portal.azure.com/)
+- [VS Code](https://code.visualstudio.com/) with [VS Code Azure extentions](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
 
 ## Getting Started
 
@@ -15,15 +16,13 @@ To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 
-- [VS Code Azure extentions](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-
-### Installation
 
 ## Usage
 
 Follow tutorials:
 
+- Microsoft Learn
 - [Deploy Express.js to Azure App Service using Visual Studio Code](https://docs.microsoft.com/en-us/azure/developer/javascript/tutorial/deploy-nodejs-azure-app-service-with-visual-studio-code?tabs=bash)
 
 ## Roadmap
@@ -34,7 +33,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
 
-[justintungonline on GitHub](https://github.com/justintungonline)
+[justunsix on GitHub](https://github.com/justunsix)
 
 ## Acknowledgements
 
