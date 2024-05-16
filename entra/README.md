@@ -15,6 +15,7 @@ Use Microsoft Graph API and PowerShell to manage Microsoft Entra, also known for
   - `Check-GroupOwners` - Check owners of groups
   - `Check-UsersFromEmailList.ps1` - See if users with certain emails are present in Entra and how many of them there are
 - `Add-GroupOwners.ps1` - Add owners to groups
+- `Update-EntraGroupMembershipFromCSV.ps1` - Given a csv file with group names and emails, update group membership to match the csv file
 
 ## PowerShell 7
 
