@@ -1,4 +1,4 @@
-# Microsoft Entra formerly Azure Active Directory (AAD)
+# Microsoft Entra ID formerly Azure Active Directory (AAD)
 
 Use Microsoft Graph API and PowerShell to manage Microsoft Entra, also known formerly as Azure Active Directory (AAD), resources.
 
