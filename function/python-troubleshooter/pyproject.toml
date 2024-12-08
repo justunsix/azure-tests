@@ -1,0 +1,9 @@
+[project]
+name = "python-troubleshooter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9.7"
+dependencies = [
+    "azure-functions>=1.21.3",
+]
