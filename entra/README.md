@@ -1,29 +1,36 @@
 # Microsoft Entra ID formerly Azure Active Directory (AAD)
 
-Use Microsoft Graph API and PowerShell to manage Microsoft Entra, also known formerly as Azure Active Directory (AAD), resources.
+Use Microsoft Graph API and PowerShell to manage Microsoft Entra, also known
+formerly as Azure Active Directory (AAD), resources.
 
 ## Prerequisites
 
-- [Install the Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-1.0) and its prerequisites and verify it:
-  - PowerShell 7 and later is recommended.
+- [Install the Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-1.0)
+  and its prerequisites and verify it:
+  - PowerShell 7.5.0 and later is recommended.
   - If using Windows PowerShell, additional prerequisites are required.
-- Learn more at [Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/?view=graph-powershell-1.0)
+- Learn more at
+  [Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/?view=graph-powershell-1.0)
 
 ## Description of Scripts in this Directory
 
 - `Check-EnterpriseAppUsers` - Check users in an Enterprise Application
   - `Check-GroupOwners` - Check owners of groups
-  - `Check-UsersFromEmailList.ps1` - See if users with certain emails are present in Entra and how many of them there are
+  - `Check-UsersFromEmailList.ps1` - See if users with certain emails are
+    present in Entra and how many of them there are
 - `Add-GroupOwners.ps1` - Add owners to groups
-- `Update-EntraGroupMembershipFromCSV.ps1` - Given a csv file with group names and emails, update group membership to match the csv file
+- `Update-EntraGroupMembershipFromCSV.ps1` - Given a csv file with group names
+  and emails, update group membership to match the csv file
 
-## PowerShell 7
+## PowerShell 7 Install Issues
 
-There may be errors when trying to install the Microsoft Graph PowerShell SDK on PowerShell 7. If you encounter errors like:
+There may be errors when trying to install the Microsoft Graph PowerShell SDK on
+PowerShell 7. If you encounter errors like:
 
 ```powershell
-Install-Package: No match was found for the specified search criteria and module name
-'Microsoft.Graph'. Try Get-PSRepository to see all available registered module
+Install-Package: No match was found for the specified search criteria and
+module name 'Microsoft.Graph'. 
+Try Get-PSRepository to see all available registered module
 repositories.
 ```
 
@@ -38,9 +45,11 @@ Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
 Install-Module Microsoft.Graph -Scope CurrentUser
 ```
 
-The error may be due to the PowerShell Gallery not being registered or the repository not being set and the commands above will set the PowerShell Gallery so the `Install-Module` command will work.
+The error may be due to the PowerShell Gallery not being registered or the
+repository not being set and the commands above will set the PowerShell Gallery
+so the `Install-Module` command will work.
 
-## Microsoft Graph Example Usage
+## Microsoft Graph PowerShell SDK Example Usage
 
 ### Module Management and Sign In
 
@@ -70,7 +79,7 @@ Disconnect-MgGraph
 
 ```powershell
 # Get information on a user
-Get-MgUser -Filter "userPrincipalName eq 'Justin.Tung@mydomain.ca'" | Format-List ID, DisplayName, Mail, UserPrincipalName
+Get-MgUser -Filter "userPrincipalName eq 'Bob.Smith@mydomain.ca'" | Format-List ID, DisplayName, Mail, UserPrincipalName
 
 # Search for users with a specific "domain.ca" in their email address
 $users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, 'domain.ca')" -OrderBy UserPrincipalName
@@ -83,7 +92,7 @@ $users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWit
 # Use -WhatIf to test changes without making them
 
 # Get a user by principal name
-$user = Get-MgUser -Filter "userPrincipalName eq 'Justin.Tung@mydomain.ca'"
+$user = Get-MgUser -Filter "userPrincipalName eq 'Janet.Smith@mydomain.ca'"
 
 # Get a group by Group name
 $group = Get-MgGroup -Filter "displayName eq 'reader-friendly-group-name'"
