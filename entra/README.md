@@ -20,7 +20,28 @@ formerly as Azure Active Directory (AAD), resources.
     present in Entra and how many of them there are
 - `Add-GroupOwners.ps1` - Add owners to groups
 - `Update-EntraGroupMembershipFromCSV.ps1` - Given a csv file with group names
-  and emails, update group membership to match the csv file
+  and emails, update group membership to match the csv file.
+  Example usage:
+
+## Scripts by Example
+
+```powershell
+
+# Check Group owners
+Check-GroupOwners.ps1 "group-name"
+
+# Add Group owners
+$owner_user_principal_names = @(
+  'john.me@email.ca'
+)
+$groupFilter1 = "group1"
+Add-GroupOwners.ps1 $owner_user_principal_names $groupFilter1
+
+# Update Group Membership
+Update-EntraGroupMembershipFromCSV.ps1 "My-Users.csv" -WhatIf
+# -WhatIf - check what changes are made, no changes will be done
+# remove -WhatIf to make changes
+```
 
 ## PowerShell 7 Install Issues
 
@@ -29,9 +50,8 @@ PowerShell 7. If you encounter errors like:
 
 ```powershell
 Install-Package: No match was found for the specified search criteria and
-module name 'Microsoft.Graph'. 
-Try Get-PSRepository to see all available registered module
-repositories.
+module name 'Microsoft.Graph'. Try Get-PSRepository to see all available
+registered module repositories.
 ```
 
 Try the following as administrator in PowerShell 7:
@@ -79,10 +99,12 @@ Disconnect-MgGraph
 
 ```powershell
 # Get information on a user
-Get-MgUser -Filter "userPrincipalName eq 'Bob.Smith@mydomain.ca'" | Format-List ID, DisplayName, Mail, UserPrincipalName
+Get-MgUser -Filter "userPrincipalName eq 'Bob.Smith@mydomain.ca'" `
+| Format-List ID, DisplayName, Mail, UserPrincipalName
 
 # Search for users with a specific "domain.ca" in their email address
-$users = Get-MgUser -ConsistencyLevel eventual -Count userCount -Filter "endsWith(Mail, 'domain.ca')" -OrderBy UserPrincipalName
+$users = Get-MgUser -ConsistencyLevel eventual -Count userCount `
+-Filter "endsWith(Mail, 'domain.ca')" -OrderBy UserPrincipalName
 ```
 
 ### User Management
@@ -103,5 +125,4 @@ Remove-MgGroupMemberByRef -GroupId $group.Id -DirectoryObjectId $user.Id
 
 # Add user found previously to the group
 New-MgGroupMember -GroupId $group.Id -DirectoryObjectId $user.Id
-
 ```
