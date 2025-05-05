@@ -20,9 +20,78 @@ param(
     # Confirm path to CSV file containing a list of users and their emails
     # set default path to users.csv file in current working directory for script
     [ValidateScript({ Test-Path $_ })]
-    [string]$AuthorizationFilePath = ".\users.csv"
+    [string]$AuthorizationFilePath = ".\users.csv",
+    [bool]$DebugMode = $false
 )
 
+# Cache of user objects looked up to avoid multiple calls to the API
+$userCache = @{}
+
+function Write-DebugLog {
+    param(
+        [string]$Message
+    )
+    if ($DebugMode) {
+        Write-Host $Message -ForegroundColor Blue
+    }
+}
+
+# Find a user based on their email
+function Find-UserByEmail() {
+
+    param(
+        [Parameter(Mandatory = $true)] 
+        [string]$email
+    )
+
+    # Check cache first
+    if ($userCache.ContainsKey($email)) {
+        Write-DebugLog("Found $($email) in cache")
+        return $userCache[$email]
+    }
+    
+    # Handle emails with single quotes like lee.o'connor@example.com and escape them
+    # for the OData filter query
+    $emailToSearch = $email.Replace("'", "''")
+    
+    # ** AAPD: $user = Get-AzureADUser -SearchString "$email"
+    # ** GPS: Get-MgUser
+    $user = Get-MgUser -Filter "startswith(userPrincipalName,'$emailToSearch')"
+
+    if (!$user) {
+        # Fix issue where SearchString email is not finding users,
+        # whose UPN does not begin with their email
+        # Reformat the email to match the start of their user principal name
+        # and search on that instead
+        $upnFromEmail = $email.Replace("@", "_")
+        # ** AAPD: $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
+        # ** GPS: Get-MgUser
+        [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphUser]$user = Get-MgUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
+        if (!$user) {
+            # Otherwise the user is not in a known format or the email could be incorrect or using an older email
+            Write-Host "Error: $email not found by this script`nDetermine if the user exists in the directory `
+                    by searching on $email and if they do add them manually." -ForegroundColor Red
+        }
+    }
+    Write-DebugLog("Searched on $($email), found user with Display Name: $($user.DisplayName)")
+
+
+    $userCache[$email] = $user
+    return $user
+}
+
+function Find-UserById() {
+    param(
+        [Parameter(Mandatory = $true)] 
+        [string]$id
+    )
+    [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphUser]$user = Get-MgUser -UserId $id
+    
+    Write-DebugLog("Searched on $($id), found user with Display Name: $($user.DisplayName)")
+
+    $userCache[$user.Mail] = $user
+    return $user
+}
 # Connect using Microsoft Graph SDK for PowerShell
 # Sign in with user read and group read write
 # to prepare for group operations if needed
@@ -33,7 +102,7 @@ Connect-MgGraph -Scopes "User.Read.All", "Group.ReadWrite.All"
 $records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach-Object {
     [PSCustomObject]@{
         Name         = $_.Name.Trim();
-        EmailAddress = $_.EmailAddress.Trim();
+        EmailAddress = $_.EmailAddress.Trim().ToLower();
         Group        = $_.Group.Trim()
     }
     # If csv row is invalid, give error, and exit script
@@ -70,7 +139,7 @@ foreach ($g in $groups) {
     # See desired members from csv file
     $desiredMembers = @()
     foreach ($member in $g.Group) {
-        $desiredGroupMemberEmail = $member.EmailAddress.ToLower()
+        $desiredGroupMemberEmail = $member.EmailAddress
         $desiredMembers += $desiredGroupMemberEmail
     }
 
@@ -88,12 +157,20 @@ foreach ($g in $groups) {
 
     foreach ($member in $groupMembers) {
 
-        $memberUserObject = Get-MgUser -UserId $member.Id
+        $memberUserObject = Find-UserById($member.Id)
         $currentGroupMemberEmail = $memberUserObject.Mail
         $otherEmailsExist = $memberUserObject.OtherMails.Count -gt 0
 
+        Write-DebugLog("Current group member `
+            Display Name: $($memberUserObject.DisplayName) `
+            `nUPN: $($($memberUserObject.UserPrincipalName)) `
+            `nEmail: $($memberUserObject.Mail) `
+            `nOther Email: $($memberUserObject.OtherMails) `
+            `nMail Nickname: $($memberUserObject.MailNickname)")
+        
+
         if (!$currentGroupMemberEmail -and !$otherEmailsExist) {
-            Write-Host "Error: $($memberUserObject.DisplayName) has no email address" -ForegroundColor Red
+            Write-Host "Error: $($memberUserObject.DisplayName) with User Principle Name: `n$($memberUserObject.UserPrincipalName) `nhas no email address" -ForegroundColor Red
         }
         else {
             if ($currentGroupMemberEmail) {
@@ -117,32 +194,11 @@ foreach ($g in $groups) {
     # Add users to group if they are desired members from csv file but not in the group
     foreach ($email in $desiredMembers) {
 
-        $isInGroup = $currentMembers | Where-Object -FilterScript { $_ -eq $email }
-        $isInGroupOtherEmails = $currentMembersOtherEmails | Where-Object -FilterScript { $_ -eq $email }
-
-        if (!$isInGroup -and !$isInGroupOtherEmails) {
+        if ($currentMembers -notcontains $email -and $currentMembersOtherEmails -notcontains $email) {
             # Desired member not in group, add them
             Write-Host "+ $email" -ForegroundColor Green
-            # ** AAPD: $user = Get-AzureADUser -SearchString "$email"
-            # ** GPS: Get-MgUser
-            # Account for emails that have single quotes in them
-            # by replacing them with two single quotes to avoid breaking filter clause
-            $emailToSearch = $email.Replace("'", "''")
-            $user = Get-MgUser -Filter "startswith(userPrincipalName,'$emailToSearch')"
 
-            if (!$user) {
-                # Fix issue where SearchString email is not finding guest users,
-                # reformat the email to match the start of their user principal name
-                # and search on that instead
-                $upnFromEmail = $email.Replace("@", "_")
-                # ** AAPD: $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
-                # ** GPS: Get-MgUser
-                $user = Get-MgUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
-                if (!$user) {
-                    # Otherwise the user is not in a known format or the email could be incorrect or using an older email
-                    Write-Host "Error: $email not found by this script`nDetermine if the user exists in the directory by searching on $email and if they do add them manually." -ForegroundColor Red
-                }
-            }
+            $user = Find-UserByEmail($email)
             if ($PSCmdlet.ShouldProcess($email , "Add to $($aadGroup.DisplayName)")) {
                 # ** AAPD: Add-AzureADGroupMember -ObjectId $aadGroup.ObjectId -RefObjectId $user.ObjectId
                 # ** GPS: New-MgGroupMember
@@ -158,14 +214,12 @@ foreach ($g in $groups) {
     
     # Remove users from group if they are in the group but not in the desired members list
     foreach ($email in $currentMembers) {
-        $removeUser = -not ($desiredMembers | Where-Object -FilterScript { $_ -eq $email })
 
-        if ($removeUser) {
+        if ($desiredMembers -notcontains $email) {
             # User is in group but not in desired members list, remove them
             Write-Host "- $email" -ForegroundColor Red
-            # ** AAPD: $user = Get-AzureADUser -SearchString "$email"
-            # ** GPS: Get-MgUser
-            $user = Get-MgUser -Filter "startswith(userPrincipalName,'$email')"
+
+            $user = Find-UserByEmail($email)
             
             if ($PSCmdlet.ShouldProcess($user.Mail , "Remove from $($aadGroup.DisplayName)")) {
                 # ** AAPD: Remove-AzureADGroupMember -ObjectId $aadGroup.ObjectId -MemberId $user.ObjectId
