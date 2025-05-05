@@ -62,6 +62,11 @@ foreach ($g in $groups) {
     # ** GPS: Get-MgGroup
     $aadGroup = Get-MgGroup -Filter "DisplayName eq '$groupName'"
     
+    if (!$aadGroup) {
+        Write-Host "Error: $groupName not found in directory, Check the group name" -ForegroundColor Red
+        continue
+    }
+
     # See desired members from csv file
     $desiredMembers = @()
     foreach ($member in $g.Group) {
