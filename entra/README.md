@@ -8,7 +8,6 @@ formerly as Azure Active Directory (AAD), resources.
 - [Install the Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/installation?view=graph-powershell-1.0)
   and its prerequisites and verify it:
   - PowerShell 7.5.0 and later is recommended.
-  - If using Windows PowerShell, additional prerequisites are required.
 - Learn more at
   [Microsoft Graph PowerShell SDK](https://learn.microsoft.com/en-us/powershell/microsoftgraph/?view=graph-powershell-1.0)
 
