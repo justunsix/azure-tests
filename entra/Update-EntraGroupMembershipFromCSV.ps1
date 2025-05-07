@@ -66,7 +66,7 @@ function Find-UserByEmail() {
         $upnFromEmail = $email.Replace("@", "_")
         # ** AAPD: $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
         # ** GPS: Get-MgUser
-        [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphUser]$user = Get-MgUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
+        $user = Get-MgUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
         if (!$user) {
             # Otherwise the user is not in a known format or the email could be incorrect or using an older email
             Write-Host "Error: $email not found by this script`nDetermine if the user exists in the directory `
@@ -74,7 +74,6 @@ function Find-UserByEmail() {
         }
     }
     Write-DebugLog("Searched on $($email), found user with Display Name: $($user.DisplayName)")
-
 
     $userCache[$email] = $user
     return $user
@@ -89,26 +88,51 @@ function Find-UserById() {
     
     Write-DebugLog("Searched on $($id), found user with Display Name: $($user.DisplayName)")
 
-    $userCache[$user.Mail] = $user
+    if ($user.Mail) {
+        $userCache[$user.Mail.ToLower()] = $user
+    }
     return $user
 }
+
+function Convert-UPNToEmail() {
+    param(
+        [Parameter(Mandatory = $true)] 
+        [string]$upn
+    )
+    $email_part = $upn.ToLower() -replace '#.*', ''
+    # replace last underscore with @
+    $email = $email_part -replace '_(?=[^_]*$)', '@'
+
+    return $email
+}
+
 # Connect using Microsoft Graph SDK for PowerShell
 # Sign in with user read and group read write
 # to prepare for group operations if needed
 Connect-MgGraph -Scopes "User.Read.All", "Group.ReadWrite.All"
 
-# CSV format is Name,EmailAddress,Group
-# Get user entries from CSV file
-$records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach-Object {
-    [PSCustomObject]@{
-        Name         = $_.Name.Trim();
-        EmailAddress = $_.EmailAddress.Trim().ToLower();
-        Group        = $_.Group.Trim()
+$csv = Import-Csv $AuthorizationFilePath
+
+# CSV required headings are Name,EmailAddress,Group
+# Import and validate  headings
+$requiredHeaders = "Name", "EmailAddress", "Group"
+foreach ($header in $requiredHeaders) {
+    if (-not $csv[0].PSObject.Properties[$header]) {
+        throw "Missing expected column '$header' in CSV file."
     }
-    # If csv row is invalid, give error, and exit script
-    if ($_.Group -eq "" -or $_.Name -eq "" -or $_.EmailAddress -eq "") {
-        Write-Host "Error: a line in csv file has no name, group, or email address assigned. Check the csv file and that rows are not empty." -ForegroundColor Red
+}
+
+# Parse and clean records
+$records = foreach ($row in $csv) {
+    if (-not $row.Name -or -not $row.EmailAddress -or -not $row.Group) {
+        Write-Host "Error: A line in the CSV file is missing Name, EmailAddress, or Group." -ForegroundColor Red
         exit 1
+    }
+
+    [PSCustomObject]@{
+        Name         = $row.Name.Trim()
+        EmailAddress = $row.EmailAddress.Trim().ToLower()
+        Group        = $row.Group.Trim()
     }
 }
 
@@ -116,7 +140,6 @@ $records = Get-Content $AuthorizationFilePath | ConvertFrom-Csv | ForEach-Object
 # - Group users by group name 
 # - Check each group
 # - Add or remove users by comparing the users in group with desired members from csv file
-
 $groups = $records | Group-Object Group
 foreach ($g in $groups) {
     $groupName = $g.Group[0].Group
@@ -161,16 +184,18 @@ foreach ($g in $groups) {
         $currentGroupMemberEmail = $memberUserObject.Mail
         $otherEmailsExist = $memberUserObject.OtherMails.Count -gt 0
 
-        Write-DebugLog("Current group member `
+        Write-DebugLog("`nCurrent group member `
             Display Name: $($memberUserObject.DisplayName) `
-            `nUPN: $($($memberUserObject.UserPrincipalName)) `
-            `nEmail: $($memberUserObject.Mail) `
-            `nOther Email: $($memberUserObject.OtherMails) `
-            `nMail Nickname: $($memberUserObject.MailNickname)")
+            UPN: $($($memberUserObject.UserPrincipalName)) `
+            Email: $($memberUserObject.Mail) `
+            Other Email: $($memberUserObject.OtherMails) `
+            Mail Nickname: $($memberUserObject.MailNickname)")
         
 
         if (!$currentGroupMemberEmail -and !$otherEmailsExist) {
-            Write-Host "Error: $($memberUserObject.DisplayName) with User Principle Name: `n$($memberUserObject.UserPrincipalName) `nhas no email address" -ForegroundColor Red
+            Write-DebugLog("Warning: $($memberUserObject.DisplayName) with User Principle Name (UPN): `n$($memberUserObject.UserPrincipalName)
+            `nhas no email address. Converting UPN to email address.")
+            $currentMembers += Convert-UPNToEmail($memberUserObject.UserPrincipalName)
         }
         else {
             if ($currentGroupMemberEmail) {
