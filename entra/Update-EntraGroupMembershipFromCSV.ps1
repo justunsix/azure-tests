@@ -63,14 +63,22 @@ function Find-UserByEmail() {
         # whose UPN does not begin with their email
         # Reformat the email to match the start of their user principal name
         # and search on that instead
-        $upnFromEmail = $email.Replace("@", "_")
+        $upnFromEmail = $email.Replace("@", "_").Replace("'", "''")
         # ** AAPD: $user = Get-AzureADUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
         # ** GPS: Get-MgUser
         $user = Get-MgUser -Filter "startswith(userPrincipalName,'$upnFromEmail')"
         if (!$user) {
-            # Otherwise the user is not in a known format or the email could be incorrect or using an older email
-            Write-Host "Error: $email not found by this script`nDetermine if the user exists in the directory `
-                    by searching on $email and if they do add them manually." -ForegroundColor Red
+            # Try searching OtherMails
+            $userByOtherMail = Get-MgUser -Filter "otherMails/any(x:x eq '$emailToSearch')" -Property OtherMails,Mail,DisplayName
+            if ($userByOtherMail) {
+                $user = $userByOtherMail | Select-Object -First 1
+                $userCache[$email] = $user
+                return $user
+            } else {
+                # Otherwise the user is not in a known format or the email could be incorrect or using an older email
+                Write-Host "Error: $email not found by this script`nDetermine if the user exists in the directory `
+                        by searching on $email and if present, add them manually." -ForegroundColor Red
+            }
         }
     }
     Write-DebugLog("Searched on $($email), found user with Display Name: $($user.DisplayName)")
